@@ -1,0 +1,1 @@
+/usr/bin/cc -g  -Wl,--enable-auto-import CMakeFiles/P1_skeleton.dir/gbn.c.o CMakeFiles/P1_skeleton.dir/receiver.c.o CMakeFiles/P1_skeleton.dir/sender.c.o  -o P1_skeleton.exe -Wl,--out-implib,libP1_skeleton.dll.a -Wl,--major-image-version,0,--minor-image-version,0 

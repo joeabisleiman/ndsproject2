@@ -1,4 +1,5 @@
 #include "gbn.h"
+#define h_addr h_addr_list[0] /* for backward compatibility */
 
 int main(int argc, char *argv[]){
 	int sockfd;          /* socket file descriptor of the client            */

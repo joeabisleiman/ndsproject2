@@ -36,27 +36,32 @@ extern int errno;
 #define RST      6        /* Reset packet used to reject new connections */
 
 /*----- Go-Back-n packet format -----*/
-typedef struct {
+typedef struct gbnhdr{
 	uint8_t  type;            /* packet type (e.g. SYN, DATA, ACK, FIN)     */
 	uint8_t  seqnum;          /* sequence number of the packet              */
     uint16_t checksum;        /* header and payload checksum                */
     uint8_t data[DATALEN];    /* pointer to the payload                     */
 } __attribute__((packed)) gbnhdr;
 
-typedef struct state_t{
-
-	/* TODO: Your state information could be encoded here. */
-
-} state_t;
-
-enum {
+typedef enum {
 	CLOSED=0,
 	SYN_SENT,
 	SYN_RCVD,
 	ESTABLISHED,
 	FIN_SENT,
 	FIN_RCVD
-};
+} machine_state;
+
+typedef struct state_t{
+
+	/* TODO: Your state information could be encoded here. */
+	/*int current_state;*/
+	machine_state current_state;
+	struct sockaddr_in client;
+
+} state_t;
+
+
 
 extern state_t s;
 

@@ -18,19 +18,45 @@ uint16_t checksum(uint16_t *buf, int nwords)
 ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
 
 	/* TODO: Your code here. */
-
+	/*Retreiving size of socket address*/
+	socklen_t socklen = sizeof(struct sockaddr);
 	/* Hint: Check the data length field 'len'.
 	 *       If it is > DATALEN, you will have to split the data
 	 *       up into multiple packets - you don't have to worry
 	 *       about getting more than N * DATALEN.
 	 */
 
+	gbnhdr DATAPACK = {.type = DATA, .seqnum = 0, .checksum = 0};
+	strcpy(DATAPACK.data, buf);
+	/*Calculating checksum and replacing it in packet (which had 0 for checksum)*/
+	uint16_t new_FAchecksum = checksum((uint16_t *) &DATAPACK, sizeof(DATAPACK) >> 1);
+	DATAPACK.checksum = new_FAchecksum;
+
+	/*Attempting to send DATAKPACK*/
+	if (sendto(sockfd, &DATAPACK, sizeof(DATAPACK), 0, (struct sockaddr *) &global_receiver, (socklen_t) socklen) == -1) {
+		perror("Data Sending failed");
+		return (-1);
+	}
+
 	return(1);
 }
-
+int counter = 0;
 ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
+	if(counter==0) {
+		sprintf(buf, "helloworld");
+		counter ++;
+		return (strlen("helloworld"));
+	}
 
 	/* TODO: Your code here. */
+	/*Retreiving size of socket address*/
+	socklen_t socklen = sizeof(struct sockaddr);
+	gbnhdr DATAPACK;
+
+	if(recvfrom(sockfd, &DATAPACK, sizeof(DATAPACK), 0, global_sender ,&socklen) == -1) {
+		perror("Data Recv failed");
+		return (-1);
+	}
 
 	return(0);
 }
@@ -50,7 +76,7 @@ int gbn_close(int sockfd){
 	if(s.current_state == SYN_RCVD){
 
 		struct gbnhdr FINRECPACK;
-		if(recvfrom(sockfd, &FINRECPACK, sizeof(FINRECPACK), 0, &global_receiver, &socklen) == -1) {
+		if(recvfrom(sockfd, &FINRECPACK, sizeof(FINRECPACK), 0, global_sender, &socklen) == -1) {
 			perror("FIN Recv failed");
 			return (-1);
 		}
@@ -106,8 +132,6 @@ int gbn_connect(int sockfd, const struct sockaddr *server, socklen_t socklen){
 
 	/*Saving Server Address and Length for Future Use*/
 	global_receiver = (struct sockaddr)*server;
-
-
 
 	struct gbnhdr SYNPACK = {.type = SYN, .seqnum = 0, .checksum = 0};
 
@@ -207,7 +231,7 @@ int gbn_accept(int sockfd, struct sockaddr *client, socklen_t *socklen){
 		return (-1);
 	}
 
-	return(1);
+	return(sockfd);
 }
 
 ssize_t maybe_sendto(int  s, const void *buf, size_t len, int flags, \

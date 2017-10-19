@@ -1,38 +1,8 @@
 #include "gbn.h"
 
-/*void constructPacket(gbnhdr *input, char* packet) {
-	sprintf(packet, "%u\r\n%u\r\n%u\r\n", input->type, input->seqnum, input->checksum);
-
-	if(input->data == NULL) {
-		sprintf(packet, "%u\r\n\r\n", *input->data);
-	}
-	else {
-		sprintf(packet, "\r\n");
-	}
-} */
-
-struct sockaddr_in server;
-struct sockaddr_in client;
+struct sockaddr global_receiver;
+struct sockaddr* global_sender;
 state_t s;
-
-void constructPacket(gbnhdr *input, char* packet) {
-	snprintf(packet, 4, "%u%u%u", input->type, input->seqnum, input->checksum);
-
-	if(input->data != NULL) {
-		snprintf(packet+4, 5, "%u", *input->data);
-	}
-
-}
-
-void modifyChecksum(char *packet, uint16_t new_checksum) {
-	if (strlen(packet) == 4) {
-		snprintf(packet + 3, 4, "%u", new_checksum);
-	} else {
-		snprintf(packet + 3, 5, "%u", new_checksum);
-	}
-
-}
-
 
 uint16_t checksum(uint16_t *buf, int nwords)
 {
@@ -55,21 +25,77 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
 	 *       about getting more than N * DATALEN.
 	 */
 
-	return(-1);
+	return(1);
 }
 
 ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
 
 	/* TODO: Your code here. */
 
-	return(-1);
+	return(0);
 }
 
 int gbn_close(int sockfd){
 
 	/* TODO: Your code here. */
+	printf("We are in gbn_Close and the state is: %u\r\n", s.current_state);
 
-	return(-1);
+	/*Retreiving size of socket address*/
+	socklen_t socklen = sizeof(struct sockaddr);
+
+	/*Method used by both Sender and Receiver, therefore we need to check FSM State to know what to do*/
+	/*If the state is not Established but is FIN_SENT, that means the sender already sent the FIN and
+	 *now it is the server's job to receive it and ack it*/
+
+	if(s.current_state == SYN_RCVD){
+
+		struct gbnhdr FINRECPACK;
+		if(recvfrom(sockfd, &FINRECPACK, sizeof(FINRECPACK), 0, &global_receiver, &socklen) == -1) {
+			perror("FIN Recv failed");
+			return (-1);
+		}
+		/*TODO: If checksum is correct*/
+		printf("FIN Ack Received Successfully.\r\n");
+
+		gbnhdr FINACKPACK = {.type = FINACK, .seqnum = 0, .checksum = 0};
+		/*Calculating checksum and replacing it in packet (which had 0 for checksum)*/
+		uint16_t new_FAchecksum = checksum((uint16_t *) &FINACKPACK, sizeof(FINACKPACK) >> 1);
+		FINACKPACK.checksum = new_FAchecksum;
+
+		/*Attempting to send FINACKPACK*/
+		if (sendto(sockfd, &FINACKPACK, sizeof(FINACKPACK), 0, global_sender, socklen) == -1) {
+			perror("FIN Ack Sending failed");
+			return (-1);
+		}
+
+		/*If there was no error, print Success and change state of FSM*/
+		printf("FIN Ack Sent successfully.\r\n");
+		printf("FIN Ack Checksum sent is: %u\r\n", FINACKPACK.checksum);
+		s.current_state = FIN_RCVD;
+
+	}
+
+	/* If the state is Established, then this is the Sender moving to close the connection*/
+
+	if(s.current_state == ESTABLISHED) {
+		gbnhdr FINPACK = {.type = FIN, .seqnum = 0, .checksum = 0};
+
+		/*Calculating checksum and replacing it in packet (which had 0 for checksum)*/
+		uint16_t new_checksum = checksum((uint16_t *) &FINPACK, sizeof(FINPACK) >> 1);
+		FINPACK.checksum = new_checksum;
+
+		/*Attempting to send FINPACK*/
+		if (sendto(sockfd, &FINPACK, sizeof(FINPACK), 0, (struct sockaddr *) &global_receiver, socklen) == -1) {
+			perror("FIN Sending failed");
+			return (-1);
+		}
+		/*If there was no error, print Success and change state of FSM*/
+		printf("FIN Sent successfully.\r\n");
+		printf("FIN Checksum sent is: %u\r\n", FINPACK.checksum);
+		s.current_state = FIN_SENT;
+	}
+
+	return(1);
 }
 
 
@@ -77,6 +103,10 @@ int gbn_close(int sockfd){
 int gbn_connect(int sockfd, const struct sockaddr *server, socklen_t socklen){
 
 	/* TODO: Your code here. */
+
+	/*Saving Server Address and Length for Future Use*/
+	global_receiver = (struct sockaddr)*server;
+
 
 
 	struct gbnhdr SYNPACK = {.type = SYN, .seqnum = 0, .checksum = 0};
@@ -99,7 +129,7 @@ int gbn_connect(int sockfd, const struct sockaddr *server, socklen_t socklen){
 		perror("SYN Ack Recv failed");
 		return (-1);
 	}
-	/*If checksum is correct*/
+	/*TODO: If checksum is correct*/
 	printf("SYN Ack Received Successfully.\r\n");
 	s.current_state = ESTABLISHED;
 	return(1);
@@ -137,6 +167,9 @@ int gbn_socket(int domain, int type, int protocol){
 int gbn_accept(int sockfd, struct sockaddr *client, socklen_t *socklen){
 
 	/* TODO: Your code here. */
+
+	/*Saving Client Address and Length for Future Use*/
+	global_sender = client;
 
 	struct gbnhdr SYNRECPACK;
 

@@ -57,7 +57,6 @@ typedef struct state_t{
 	/* TODO: Your state information could be encoded here. */
 	/*int current_state;*/
 	machine_state current_state;
-	struct sockaddr_in client;
 
 } state_t;
 

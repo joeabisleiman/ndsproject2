@@ -16,6 +16,12 @@ uint16_t checksum(uint16_t *buf, int nwords)
 	return ~sum;
 }
 
+size_t min(size_t a, size_t b) {
+    if(b>a)
+        return a;
+    return b;
+}
+
 int gbn_socket(int domain, int type, int protocol){
 
     /*----- Randomizing the seed. This is used by the rand() function -----*/
@@ -135,20 +141,43 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
 	 *       about getting more than N * DATALEN.
 	 */
 
-	gbnhdr DATAPACK = {.type = DATA, .seqnum = 0, .checksum = 0};
-	strncpy(DATAPACK.data, buf, len);
+    size_t tempLen = len;
+    size_t dataLen;
+    int bufferIndex = 0;
 
-	/*Calculating checksum and replacing it in packet (which had 0 for checksum)*/
+    while(tempLen>0) {
+        dataLen = min(tempLen, DATALEN);
+        tempLen -= dataLen;
+
+        gbnhdr DATAPACK = {.type = DATA, .seqnum = 0, .checksum = 0};
+        strncpy(DATAPACK.data, buf + bufferIndex, dataLen);
+        bufferIndex += dataLen;
+
+        uint16_t new_FAchecksum = checksum((uint16_t *) &DATAPACK, sizeof(DATAPACK) >> 1);
+        DATAPACK.checksum = new_FAchecksum;
+
+        ssize_t sent;
+        if ((sent = sendto(sockfd, &DATAPACK, dataLen+4, 0, (struct sockaddr *) &global_receiver, (socklen_t) socklen)) == -1) {
+            perror("Data Sending failed");
+            return (-1);
+        }
+        printf("DATA send is: %zd\r\n", sent);
+    }
+
+/*	gbnhdr DATAPACK = {.type = DATA, .seqnum = 0, .checksum = 0};
+	strncpy(DATAPACK.data, buf, 1024);
+
+	*//*Calculating checksum and replacing it in packet (which had 0 for checksum)*//*
 	uint16_t new_FAchecksum = checksum((uint16_t *) &DATAPACK, sizeof(DATAPACK) >> 1);
 	DATAPACK.checksum = new_FAchecksum;
 
-	/*Attempting to send DATAKPACK*/
+	*//*Attempting to send DATAKPACK*//*
     ssize_t sent;
 	if ((sent = sendto(sockfd, &DATAPACK, len+4, 0, (struct sockaddr *) &global_receiver, (socklen_t) socklen)) == -1) {
 		perror("Data Sending failed");
 		return (-1);
 	}
-    printf("DATA send is: %zd\r\n", sent);
+    printf("DATA send is: %zd\r\n", sent);*/
 	return(1);
 }
 
@@ -160,7 +189,6 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
     gbnhdr DATAPACK;
     ssize_t recd;
 
-	printf("prior data is: %s\r\n", DATAPACK.data);
     recd = recvfrom(sockfd, &DATAPACK, sizeof(DATAPACK), 0, (struct sockaddr*) &global_sender, &socklen);
 	if((recd == -1)) {
 		perror("Data Recv failed");
@@ -178,7 +206,6 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
 
 
     printf("receiver buf1 size is: %zd\r\n", recd);
-	printf("data received by gbnrecv is: %s\r\n", DATAPACK.data);
 	return(recd-4);
 }
 

@@ -162,13 +162,24 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
     ssize_t recd;
 
 	printf("prior data is: %s\r\n", DATAPACK.data);
-	if((recd = recvfrom(sockfd, &DATAPACK.data, sizeof(DATAPACK.data), 0, (struct sockaddr*) &global_sender, &socklen) == -1)) {
+	if((recd = recvfrom(sockfd, &DATAPACK, sizeof(DATAPACK), 0, (struct sockaddr*) &global_sender, &socklen) == -1)) {
 		perror("Data Recv failed");
 		return (-1);
 	}
-    printf("receiver buf size is: %zd\r\n", recd);
-	printf("data received is: %s\r\n", DATAPACK.data);
-	return(recd);
+
+    if(DATAPACK.type == 4) {
+        /*TODO: If checksum is correct*/
+        printf("FIN Received Successfully.\r\n");
+        s.current_state = FIN_RCVD;
+        return (0);
+    }
+
+    snprintf(buf, strlen(DATAPACK.data), "%s", DATAPACK.data);
+
+    printf("receiver buf size is: %zd\r\n", strlen(DATAPACK.data));
+    printf("receiver buf TYPE is: %u\r\n", DATAPACK.type);
+	printf("data received by gbnrecv is: %s\r\n", DATAPACK.data);
+	return(strlen(DATAPACK.data));
 }
 
 int gbn_close(int sockfd){
@@ -184,15 +195,18 @@ int gbn_close(int sockfd){
 	/*If the state is not Established but is FIN_SENT, that means the sender already sent the FIN and
 	 *now it is the server's job to receive it and ack it*/
 
-	if(s.current_state == SYN_RCVD){
+	if(s.current_state == FIN_RCVD){
 
-		struct gbnhdr FINRECPACK;
+        printf("Attempting FIN Received Successfully.\r\n");
+		/*struct gbnhdr FINRECPACK;
 		if(recvfrom(sockfd, &FINRECPACK, sizeof(FINRECPACK), 0, (struct sockaddr*) &global_sender, &socklen) == -1) {
 			perror("FIN Recv failed");
 			return (-1);
 		}
-		/*TODO: If checksum is correct*/
-		printf("FIN Ack Received Successfully.\r\n");
+		TODO: If checksum is correct
+		printf("FIN Received Successfully.\r\n");
+        printf("FIN Checksum Received is.%u\r\n", FINRECPACK.checksum);
+        */
 
 		gbnhdr FINACKPACK = {.type = FINACK, .seqnum = 0, .checksum = 0};
 		/*Calculating checksum and replacing it in packet (which had 0 for checksum)*/
@@ -209,6 +223,7 @@ int gbn_close(int sockfd){
 		printf("FIN Ack Sent successfully.\r\n");
 		printf("FIN Ack Checksum sent is: %u\r\n", FINACKPACK.checksum);
 		s.current_state = FIN_RCVD;
+        close(sockfd);
 
 	}
 
@@ -230,6 +245,7 @@ int gbn_close(int sockfd){
 		printf("FIN Sent successfully.\r\n");
 		printf("FIN Checksum sent is: %u\r\n", FINPACK.checksum);
 		s.current_state = FIN_SENT;
+        close(sockfd);
 	}
 
 	return(1);

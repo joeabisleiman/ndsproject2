@@ -128,6 +128,7 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
 	/* TODO: Your code here. */
 	/*Retreiving size of socket address*/
 	socklen_t socklen = sizeof(struct sockaddr);
+
 	/* Hint: Check the data length field 'len'.
 	 *       If it is > DATALEN, you will have to split the data
 	 *       up into multiple packets - you don't have to worry
@@ -135,9 +136,7 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
 	 */
 
 	gbnhdr DATAPACK = {.type = DATA, .seqnum = 0, .checksum = 0};
-	strncpy(DATAPACK.data, (const char *) buf, strlen(buf));
-    printf("buf is: %s\r\n", (const char *) buf);
-    printf("DATAPACK.data is: %s\r\n", DATAPACK.data);
+	strncpy(DATAPACK.data, buf, len);
 
 	/*Calculating checksum and replacing it in packet (which had 0 for checksum)*/
 	uint16_t new_FAchecksum = checksum((uint16_t *) &DATAPACK, sizeof(DATAPACK) >> 1);
@@ -145,7 +144,7 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
 
 	/*Attempting to send DATAKPACK*/
     ssize_t sent;
-	if ((sent = sendto(sockfd, &DATAPACK, sizeof(DATAPACK), 0, (struct sockaddr *) &global_receiver, (socklen_t) socklen)) == -1) {
+	if ((sent = sendto(sockfd, &DATAPACK, len+4, 0, (struct sockaddr *) &global_receiver, (socklen_t) socklen)) == -1) {
 		perror("Data Sending failed");
 		return (-1);
 	}
@@ -154,15 +153,16 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
 }
 
 ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
-
 	/* TODO: Your code here. */
 	/*Retreiving size of socket address*/
 	socklen_t socklen = sizeof(struct sockaddr);
-	gbnhdr DATAPACK;
+
+    gbnhdr DATAPACK;
     ssize_t recd;
 
 	printf("prior data is: %s\r\n", DATAPACK.data);
-	if((recd = recvfrom(sockfd, &DATAPACK, sizeof(DATAPACK), 0, (struct sockaddr*) &global_sender, &socklen) == -1)) {
+    recd = recvfrom(sockfd, &DATAPACK, sizeof(DATAPACK), 0, (struct sockaddr*) &global_sender, &socklen);
+	if((recd == -1)) {
 		perror("Data Recv failed");
 		return (-1);
 	}
@@ -174,12 +174,12 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
         return (0);
     }
 
-    snprintf(buf, strlen(DATAPACK.data), "%s", DATAPACK.data);
+    strncpy(buf, DATAPACK.data, recd-4);
 
-    printf("receiver buf size is: %zd\r\n", strlen(DATAPACK.data));
-    printf("receiver buf TYPE is: %u\r\n", DATAPACK.type);
+
+    printf("receiver buf1 size is: %zd\r\n", recd);
 	printf("data received by gbnrecv is: %s\r\n", DATAPACK.data);
-	return(strlen(DATAPACK.data));
+	return(recd-4);
 }
 
 int gbn_close(int sockfd){
@@ -214,7 +214,7 @@ int gbn_close(int sockfd){
 		FINACKPACK.checksum = new_FAchecksum;
 
 		/*Attempting to send FINACKPACK*/
-		if (sendto(sockfd, &FINACKPACK, sizeof(FINACKPACK), 0, (struct sockaddr*) &global_sender, socklen) == -1) {
+		if (sendto(sockfd, &FINACKPACK, 4, 0, (struct sockaddr*) &global_sender, socklen) == -1) {
 			perror("FIN Ack Sending failed");
 			return (-1);
 		}
@@ -237,7 +237,7 @@ int gbn_close(int sockfd){
 		FINPACK.checksum = new_checksum;
 
 		/*Attempting to send FINPACK*/
-		if (sendto(sockfd, &FINPACK, sizeof(FINPACK), 0, &global_receiver, socklen) == -1) {
+		if (sendto(sockfd, &FINPACK, 4, 0, &global_receiver, socklen) == -1) {
 			perror("FIN Sending failed");
 			return (-1);
 		}

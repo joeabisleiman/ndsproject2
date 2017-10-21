@@ -61,8 +61,9 @@ int main(int argc, char *argv[])
 			perror("gbn_recv");
 			exit(-1);
 		}
-		else if (numRead == 0)
-			break;
+		else if (numRead == 0) {
+            break;
+        }
 		fwrite(buf, 1, numRead, outputFile);
 	}
 

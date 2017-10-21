@@ -1,7 +1,8 @@
 #include "gbn.h"
 
 struct sockaddr global_receiver;
-struct sockaddr* global_sender;
+struct sockaddr global_sender;
+
 state_t s;
 
 uint16_t checksum(uint16_t *buf, int nwords)
@@ -13,6 +14,113 @@ uint16_t checksum(uint16_t *buf, int nwords)
 	sum = (sum >> 16) + (sum & 0xffff);
 	sum += (sum >> 16);
 	return ~sum;
+}
+
+int gbn_socket(int domain, int type, int protocol){
+
+    /*----- Randomizing the seed. This is used by the rand() function -----*/
+    srand((unsigned)time(0));
+
+    int sockfd;
+
+    sockfd = socket(domain, type, protocol);
+    /* TODO: Your code here. */
+    return(sockfd);
+}
+
+int gbn_bind(int sockfd, const struct sockaddr *server, socklen_t socklen){
+
+    /* TODO: Your code here. */
+    if (bind(sockfd, server, socklen) < 0) {
+        return(-1);
+    }
+    return(1);
+}
+
+int gbn_listen(int sockfd, int backlog){
+
+    /* TODO: Your code here. */
+    s.current_state = CLOSED;
+    return(1);
+}
+
+int gbn_connect(int sockfd, const struct sockaddr *server, socklen_t socklen){
+
+    /* TODO: Your code here. */
+
+    /*Saving Server Address and Length for Future Use*/
+    global_receiver = *server;
+
+    struct gbnhdr SYNPACK = {.type = SYN, .seqnum = 0, .checksum = 0};
+
+    uint16_t new_checksum = checksum((uint16_t*) &SYNPACK,sizeof(SYNPACK) >> 1);
+    SYNPACK.checksum = new_checksum;
+
+    if(sendto(sockfd, &SYNPACK, sizeof(SYNPACK), 0, server ,socklen) == -1) {
+        perror("SYN Sending failed");
+        return (-1);
+    }
+
+    printf("SYN Sent successfully.\r\n");
+    printf("Sent Data is: %s\r\n", SYNPACK.data);
+    printf("SYN Checksum sent is: %u\r\n", SYNPACK.checksum);
+    s.current_state = SYN_SENT;
+
+    struct gbnhdr SYNACKPACK;
+    if(recvfrom(sockfd, &SYNACKPACK, sizeof(SYNACKPACK), 0, (struct sockaddr*) &server, &socklen) == -1) {
+        perror("SYN Ack Recv failed");
+        return (-1);
+    }
+    /*TODO: If checksum is correct*/
+    printf("SYN Ack Received Successfully.\r\n");
+    s.current_state = ESTABLISHED;
+    return(1);
+}
+
+int gbn_accept(int sockfd, struct sockaddr *client, socklen_t *socklen){
+
+    /* TODO: Your code here. */
+
+    /*Saving Client Address and Length for Future Use*/
+    global_sender = *client;
+
+    struct gbnhdr SYNRECPACK;
+
+    if(recvfrom(sockfd, &SYNRECPACK, sizeof(SYNRECPACK), 0, client ,socklen) == -1) {
+        perror("SYN Recv failed");
+        return (-1);
+    }
+
+    /*If checksum is correct*/
+    uint16_t received_checksum = SYNRECPACK.checksum;
+    SYNRECPACK.checksum = 0;
+    uint16_t calculated_checksum = checksum((uint16_t*) &SYNRECPACK,sizeof(SYNRECPACK) >> 1);
+
+    printf("Received Data is: %s\r\n", SYNRECPACK.data);
+    printf("Old CS: %u, New CS: %u\r\n", received_checksum, calculated_checksum);
+
+    if(received_checksum != calculated_checksum) {
+        perror("Corrupted Packet");
+        return (-1);
+    }
+
+    printf("SYN Received Successfully.\r\n");
+    printf("Type is: %u\r\n", SYNRECPACK.type);
+    printf("SYN Checksum received is: %u\r\n", SYNRECPACK.checksum);
+    s.current_state = SYN_RCVD;
+
+    /*Need to construct SYN ACK and send it*/
+    gbnhdr SYNACKPACK = {.type = SYNACK, .seqnum = 0, .checksum = 0};
+
+    uint16_t synack_checksum = checksum((uint16_t*) &SYNACKPACK,sizeof(SYNACKPACK) >> 1);
+    SYNACKPACK.checksum = synack_checksum;
+
+    if(sendto(sockfd, &SYNACKPACK, sizeof(SYNACKPACK), 0, client ,*socklen) == -1) {
+        perror("SYN ACK Sending failed");
+        return (-1);
+    }
+
+    return(sockfd);
 }
 
 ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
@@ -27,44 +135,47 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
 	 */
 
 	gbnhdr DATAPACK = {.type = DATA, .seqnum = 0, .checksum = 0};
-	strcpy(DATAPACK.data, buf);
+	strncpy(DATAPACK.data, (const char *) buf, strlen(buf));
+    printf("buf is: %s\r\n", (const char *) buf);
+    printf("DATAPACK.data is: %s\r\n", DATAPACK.data);
+
 	/*Calculating checksum and replacing it in packet (which had 0 for checksum)*/
 	uint16_t new_FAchecksum = checksum((uint16_t *) &DATAPACK, sizeof(DATAPACK) >> 1);
 	DATAPACK.checksum = new_FAchecksum;
 
 	/*Attempting to send DATAKPACK*/
-	if (sendto(sockfd, &DATAPACK, sizeof(DATAPACK), 0, (struct sockaddr *) &global_receiver, (socklen_t) socklen) == -1) {
+    ssize_t sent;
+	if ((sent = sendto(sockfd, &DATAPACK, sizeof(DATAPACK), 0, (struct sockaddr *) &global_receiver, (socklen_t) socklen)) == -1) {
 		perror("Data Sending failed");
 		return (-1);
 	}
-
+    printf("DATA send is: %zd\r\n", sent);
 	return(1);
 }
-int counter = 0;
+
 ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
-	if(counter==0) {
-		sprintf(buf, "helloworld");
-		counter ++;
-		return (strlen("helloworld"));
-	}
 
 	/* TODO: Your code here. */
 	/*Retreiving size of socket address*/
 	socklen_t socklen = sizeof(struct sockaddr);
 	gbnhdr DATAPACK;
+    ssize_t recd;
 
-	if(recvfrom(sockfd, &DATAPACK, sizeof(DATAPACK), 0, global_sender ,&socklen) == -1) {
+	printf("prior data is: %s\r\n", DATAPACK.data);
+	if((recd = recvfrom(sockfd, &DATAPACK.data, sizeof(DATAPACK.data), 0, (struct sockaddr*) &global_sender, &socklen) == -1)) {
 		perror("Data Recv failed");
 		return (-1);
 	}
-
-	return(0);
+    printf("receiver buf size is: %zd\r\n", recd);
+	printf("data received is: %s\r\n", DATAPACK.data);
+	return(recd);
 }
 
 int gbn_close(int sockfd){
 
 	/* TODO: Your code here. */
 	printf("We are in gbn_Close and the state is: %u\r\n", s.current_state);
+    printf("SYNRCVD is: %u\n", SYN_RCVD);
 
 	/*Retreiving size of socket address*/
 	socklen_t socklen = sizeof(struct sockaddr);
@@ -76,7 +187,7 @@ int gbn_close(int sockfd){
 	if(s.current_state == SYN_RCVD){
 
 		struct gbnhdr FINRECPACK;
-		if(recvfrom(sockfd, &FINRECPACK, sizeof(FINRECPACK), 0, global_sender, &socklen) == -1) {
+		if(recvfrom(sockfd, &FINRECPACK, sizeof(FINRECPACK), 0, (struct sockaddr*) &global_sender, &socklen) == -1) {
 			perror("FIN Recv failed");
 			return (-1);
 		}
@@ -89,7 +200,7 @@ int gbn_close(int sockfd){
 		FINACKPACK.checksum = new_FAchecksum;
 
 		/*Attempting to send FINACKPACK*/
-		if (sendto(sockfd, &FINACKPACK, sizeof(FINACKPACK), 0, global_sender, socklen) == -1) {
+		if (sendto(sockfd, &FINACKPACK, sizeof(FINACKPACK), 0, (struct sockaddr*) &global_sender, socklen) == -1) {
 			perror("FIN Ack Sending failed");
 			return (-1);
 		}
@@ -111,7 +222,7 @@ int gbn_close(int sockfd){
 		FINPACK.checksum = new_checksum;
 
 		/*Attempting to send FINPACK*/
-		if (sendto(sockfd, &FINPACK, sizeof(FINPACK), 0, (struct sockaddr *) &global_receiver, socklen) == -1) {
+		if (sendto(sockfd, &FINPACK, sizeof(FINPACK), 0, &global_receiver, socklen) == -1) {
 			perror("FIN Sending failed");
 			return (-1);
 		}
@@ -122,116 +233,6 @@ int gbn_close(int sockfd){
 	}
 
 	return(1);
-}
-
-
-
-int gbn_connect(int sockfd, const struct sockaddr *server, socklen_t socklen){
-
-	/* TODO: Your code here. */
-
-	/*Saving Server Address and Length for Future Use*/
-	global_receiver = (struct sockaddr)*server;
-
-	struct gbnhdr SYNPACK = {.type = SYN, .seqnum = 0, .checksum = 0};
-
-	uint16_t new_checksum = checksum((uint16_t*) &SYNPACK,sizeof(SYNPACK) >> 1);
-	SYNPACK.checksum = new_checksum;
-
-	if(sendto(sockfd, &SYNPACK, sizeof(SYNPACK), 0, server ,socklen) == -1) {
-		perror("SYN Sending failed");
-		return (-1);
-	}
-
-	printf("SYN Sent successfully.\r\n");
-	printf("Sent Data is: %s", SYNPACK.data);
-	printf("SYN Checksum sent is: %u\r\n", SYNPACK.checksum);
-	s.current_state = SYN_SENT;
-
-	struct gbnhdr SYNACKPACK;
-	if(recvfrom(sockfd, &SYNACKPACK, sizeof(SYNACKPACK), 0, server, &socklen) == -1) {
-		perror("SYN Ack Recv failed");
-		return (-1);
-	}
-	/*TODO: If checksum is correct*/
-	printf("SYN Ack Received Successfully.\r\n");
-	s.current_state = ESTABLISHED;
-	return(1);
-}
-
-int gbn_listen(int sockfd, int backlog){
-
-	/* TODO: Your code here. */
-	s.current_state = CLOSED;
-	printf("Listening in GBN \r\n");
-	return(1);
-}
-
-int gbn_bind(int sockfd, const struct sockaddr *server, socklen_t socklen){
-
-	/* TODO: Your code here. */
-	if (bind(sockfd, server, socklen) < 0) {
-		return(-1);
-	}
-	return(1);
-}	
-
-int gbn_socket(int domain, int type, int protocol){
-
-	/*----- Randomizing the seed. This is used by the rand() function -----*/
-	srand((unsigned)time(0));
-
-	int sockfd;
-
-	sockfd = socket(domain, type, protocol);
-	/* TODO: Your code here. */
-	return(sockfd);
-}
-
-int gbn_accept(int sockfd, struct sockaddr *client, socklen_t *socklen){
-
-	/* TODO: Your code here. */
-
-	/*Saving Client Address and Length for Future Use*/
-	global_sender = client;
-
-	struct gbnhdr SYNRECPACK;
-
-	if(recvfrom(sockfd, &SYNRECPACK, sizeof(SYNRECPACK), 0, client ,socklen) == -1) {
-		perror("SYN Recv failed");
-		return (-1);
-	}
-
-	/*If checksum is correct*/
-	uint16_t received_checksum = SYNRECPACK.checksum;
-	SYNRECPACK.checksum = 0;
-	uint16_t calculated_checksum = checksum((uint16_t*) &SYNRECPACK,sizeof(SYNRECPACK) >> 1);
-
-	printf("Received Data is: %s", SYNRECPACK.data);
-	printf("Old CS: %u, New CS: %u\r\n", received_checksum, calculated_checksum);
-
-	if(received_checksum != calculated_checksum) {
-		perror("Corrupted Packet");
-		return (-1);
-	}
-
-	printf("SYN Received Successfully.\r\n");
-	printf("Type is: %u\r\n", SYNRECPACK.type);
-	printf("SYN Checksum received is: %u\r\n", SYNRECPACK.checksum);
-	s.current_state = SYN_RCVD;
-
-	/*Need to construct SYN ACK and send it*/
-	gbnhdr SYNACKPACK = {.type = SYNACK, .seqnum = 0, .checksum = 0};
-
-	uint16_t synack_checksum = checksum((uint16_t*) &SYNACKPACK,sizeof(SYNACKPACK) >> 1);
-	SYNACKPACK.checksum = synack_checksum;
-
-	if(sendto(sockfd, &SYNACKPACK, sizeof(SYNACKPACK), 0, client ,*socklen) == -1) {
-		perror("SYN ACK Sending failed");
-		return (-1);
-	}
-
-	return(sockfd);
 }
 
 ssize_t maybe_sendto(int  s, const void *buf, size_t len, int flags, \

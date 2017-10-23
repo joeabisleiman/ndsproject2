@@ -12,6 +12,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="846a0419-afe8-4fa6-9a82-9c7370816e37" name="Default" comment="">
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/gbn.c" afterPath="$PROJECT_DIR$/gbn.c" />
     </list>
     <ignored path="$PROJECT_DIR$/cmake-build-debug/" />
@@ -37,8 +38,8 @@
       <file leaf-file-name="sender.c" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/sender.c">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="920">
-              <caret line="56" column="5" lean-forward="true" selection-start-line="56" selection-start-column="5" selection-end-line="56" selection-end-column="5" />
+            <state relative-caret-position="880">
+              <caret line="52" column="41" lean-forward="false" selection-start-line="52" selection-start-column="34" selection-end-line="52" selection-end-column="41" />
               <folding />
             </state>
           </provider>
@@ -47,8 +48,8 @@
       <file leaf-file-name="receiver.c" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/receiver.c">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="794">
-              <caret line="64" column="18" lean-forward="true" selection-start-line="64" selection-start-column="18" selection-end-line="64" selection-end-column="18" />
+            <state relative-caret-position="674">
+              <caret line="61" column="21" lean-forward="true" selection-start-line="61" selection-start-column="21" selection-end-line="61" selection-end-column="21" />
               <folding />
             </state>
           </provider>
@@ -57,8 +58,8 @@
       <file leaf-file-name="gbn.h" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/gbn.h">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="639">
-              <caret line="43" column="23" lean-forward="false" selection-start-line="43" selection-start-column="17" selection-end-line="43" selection-end-column="23" />
+            <state relative-caret-position="480">
+              <caret line="42" column="4" lean-forward="false" selection-start-line="42" selection-start-column="4" selection-end-line="42" selection-end-column="11" />
               <folding />
             </state>
           </provider>
@@ -67,17 +68,16 @@
       <file leaf-file-name="gbn.c" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/gbn.c">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1594">
-              <caret line="159" column="46" lean-forward="false" selection-start-line="159" selection-start-column="46" selection-end-line="159" selection-end-column="55" />
+            <state relative-caret-position="874">
+              <caret line="167" column="52" lean-forward="true" selection-start-line="167" selection-start-column="52" selection-end-line="167" selection-end-column="52" />
               <folding>
-                <element signature="e#95#285#0" expanded="false" />
-                <element signature="e#367#644#0" expanded="false" />
-                <element signature="e#646#842#0" expanded="false" />
-                <element signature="e#844#964#0" expanded="false" />
-                <element signature="e#966#2030#0" expanded="false" />
-                <element signature="e#2032#3492#0" expanded="false" />
-                <element signature="e#5933#8387#0" expanded="false" />
-                <element signature="e#8389#9198#0" expanded="false" />
+                <element signature="e#332#410#0" expanded="false" />
+                <element signature="e#458#735#0" expanded="false" />
+                <element signature="e#737#933#0" expanded="false" />
+                <element signature="e#935#1055#0" expanded="false" />
+                <element signature="e#1057#2424#0" expanded="false" />
+                <element signature="e#2426#3886#0" expanded="false" />
+                <element signature="e#11265#12074#0" expanded="false" />
               </folding>
             </state>
           </provider>
@@ -111,6 +111,7 @@
       <find>sned</find>
       <find>zd</find>
       <find>server</find>
+      <find>ls are</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -121,9 +122,9 @@
       <list>
         <option value="$PROJECT_DIR$/TestFIle.c" />
         <option value="$PROJECT_DIR$/TestFile.c" />
-        <option value="$PROJECT_DIR$/sender.c" />
-        <option value="$PROJECT_DIR$/gbn.h" />
         <option value="$PROJECT_DIR$/receiver.c" />
+        <option value="$PROJECT_DIR$/gbn.h" />
+        <option value="$PROJECT_DIR$/sender.c" />
         <option value="$PROJECT_DIR$/gbn.c" />
       </list>
     </option>
@@ -218,7 +219,7 @@
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="81568000" />
+    <option name="totallyTimeSpent" value="103563000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-16" y="-16" width="3872" height="2092" extended-state="6" />
@@ -352,14 +353,13 @@
         <state relative-caret-position="638">
           <caret line="48" column="5" lean-forward="true" selection-start-line="48" selection-start-column="5" selection-end-line="48" selection-end-column="5" />
           <folding>
-            <element signature="e#95#285#0" expanded="false" />
-            <element signature="e#367#644#0" expanded="false" />
-            <element signature="e#646#842#0" expanded="false" />
-            <element signature="e#844#964#0" expanded="false" />
-            <element signature="e#966#2030#0" expanded="false" />
-            <element signature="e#2032#3492#0" expanded="false" />
-            <element signature="e#5933#8387#0" expanded="false" />
-            <element signature="e#8389#9198#0" expanded="false" />
+            <element signature="e#332#410#0" expanded="false" />
+            <element signature="e#458#735#0" expanded="false" />
+            <element signature="e#737#933#0" expanded="false" />
+            <element signature="e#935#1055#0" expanded="false" />
+            <element signature="e#1057#2424#0" expanded="false" />
+            <element signature="e#2426#3886#0" expanded="false" />
+            <element signature="e#11265#12074#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -369,55 +369,13 @@
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="e#95#285#0" expanded="false" />
-            <element signature="e#367#644#0" expanded="false" />
-            <element signature="e#646#842#0" expanded="false" />
-            <element signature="e#844#964#0" expanded="false" />
-            <element signature="e#966#2030#0" expanded="false" />
-            <element signature="e#2032#3492#0" expanded="false" />
-            <element signature="e#5933#8387#0" expanded="false" />
-            <element signature="e#8389#9198#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/sender.c">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1836">
-          <caret line="54" column="21" lean-forward="false" selection-start-line="54" selection-start-column="21" selection-end-line="54" selection-end-column="21" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/gbn.h">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1190">
-          <caret line="35" column="19" lean-forward="false" selection-start-line="35" selection-start-column="19" selection-end-line="35" selection-end-column="19" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/receiver.c">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1938">
-          <caret line="57" column="23" lean-forward="false" selection-start-line="57" selection-start-column="23" selection-end-line="57" selection-end-column="23" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/gbn.c">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding>
-            <element signature="e#95#285#0" expanded="false" />
-            <element signature="e#367#644#0" expanded="false" />
-            <element signature="e#646#842#0" expanded="false" />
-            <element signature="e#844#964#0" expanded="false" />
-            <element signature="e#966#2030#0" expanded="false" />
-            <element signature="e#2032#3492#0" expanded="false" />
-            <element signature="e#5933#8387#0" expanded="false" />
-            <element signature="e#8389#9198#0" expanded="false" />
+            <element signature="e#332#410#0" expanded="false" />
+            <element signature="e#458#735#0" expanded="false" />
+            <element signature="e#737#933#0" expanded="false" />
+            <element signature="e#935#1055#0" expanded="false" />
+            <element signature="e#1057#2424#0" expanded="false" />
+            <element signature="e#2426#3886#0" expanded="false" />
+            <element signature="e#11265#12074#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -451,14 +409,53 @@
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="e#95#285#0" expanded="false" />
-            <element signature="e#367#644#0" expanded="false" />
-            <element signature="e#646#842#0" expanded="false" />
-            <element signature="e#844#964#0" expanded="false" />
-            <element signature="e#966#2030#0" expanded="false" />
-            <element signature="e#2032#3492#0" expanded="false" />
-            <element signature="e#5933#8387#0" expanded="false" />
-            <element signature="e#8389#9198#0" expanded="false" />
+            <element signature="e#332#410#0" expanded="false" />
+            <element signature="e#458#735#0" expanded="false" />
+            <element signature="e#737#933#0" expanded="false" />
+            <element signature="e#935#1055#0" expanded="false" />
+            <element signature="e#1057#2424#0" expanded="false" />
+            <element signature="e#2426#3886#0" expanded="false" />
+            <element signature="e#11265#12074#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/sender.c">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1836">
+          <caret line="54" column="21" lean-forward="false" selection-start-line="54" selection-start-column="21" selection-end-line="54" selection-end-column="21" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/gbn.h">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1190">
+          <caret line="35" column="19" lean-forward="false" selection-start-line="35" selection-start-column="19" selection-end-line="35" selection-end-column="19" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/receiver.c">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1938">
+          <caret line="57" column="23" lean-forward="false" selection-start-line="57" selection-start-column="23" selection-end-line="57" selection-end-column="23" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/gbn.c">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#332#410#0" expanded="false" />
+            <element signature="e#458#735#0" expanded="false" />
+            <element signature="e#737#933#0" expanded="false" />
+            <element signature="e#935#1055#0" expanded="false" />
+            <element signature="e#1057#2424#0" expanded="false" />
+            <element signature="e#2426#3886#0" expanded="false" />
+            <element signature="e#11265#12074#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -530,14 +527,13 @@
         <state relative-caret-position="374">
           <caret line="11" column="4" lean-forward="true" selection-start-line="2" selection-start-column="0" selection-end-line="12" selection-end-column="0" />
           <folding>
-            <element signature="e#95#285#0" expanded="false" />
-            <element signature="e#367#644#0" expanded="false" />
-            <element signature="e#646#842#0" expanded="false" />
-            <element signature="e#844#964#0" expanded="false" />
-            <element signature="e#966#2030#0" expanded="false" />
-            <element signature="e#2032#3492#0" expanded="false" />
-            <element signature="e#5933#8387#0" expanded="false" />
-            <element signature="e#8389#9198#0" expanded="false" />
+            <element signature="e#332#410#0" expanded="false" />
+            <element signature="e#458#735#0" expanded="false" />
+            <element signature="e#737#933#0" expanded="false" />
+            <element signature="e#935#1055#0" expanded="false" />
+            <element signature="e#1057#2424#0" expanded="false" />
+            <element signature="e#2426#3886#0" expanded="false" />
+            <element signature="e#11265#12074#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -585,14 +581,13 @@
         <state relative-caret-position="5338">
           <caret line="157" column="12" lean-forward="true" selection-start-line="157" selection-start-column="12" selection-end-line="157" selection-end-column="12" />
           <folding>
-            <element signature="e#95#285#0" expanded="false" />
-            <element signature="e#367#644#0" expanded="false" />
-            <element signature="e#646#842#0" expanded="false" />
-            <element signature="e#844#964#0" expanded="false" />
-            <element signature="e#966#2030#0" expanded="false" />
-            <element signature="e#2032#3492#0" expanded="false" />
-            <element signature="e#5933#8387#0" expanded="false" />
-            <element signature="e#8389#9198#0" expanded="false" />
+            <element signature="e#332#410#0" expanded="false" />
+            <element signature="e#458#735#0" expanded="false" />
+            <element signature="e#737#933#0" expanded="false" />
+            <element signature="e#935#1055#0" expanded="false" />
+            <element signature="e#1057#2424#0" expanded="false" />
+            <element signature="e#2426#3886#0" expanded="false" />
+            <element signature="e#11265#12074#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -640,14 +635,13 @@
         <state relative-caret-position="927">
           <caret line="54" column="25" lean-forward="true" selection-start-line="54" selection-start-column="25" selection-end-line="54" selection-end-column="25" />
           <folding>
-            <element signature="e#95#285#0" expanded="false" />
-            <element signature="e#367#644#0" expanded="false" />
-            <element signature="e#646#842#0" expanded="false" />
-            <element signature="e#844#964#0" expanded="false" />
-            <element signature="e#966#2030#0" expanded="false" />
-            <element signature="e#2032#3492#0" expanded="false" />
-            <element signature="e#5933#8387#0" expanded="false" />
-            <element signature="e#8389#9198#0" expanded="false" />
+            <element signature="e#332#410#0" expanded="false" />
+            <element signature="e#458#735#0" expanded="false" />
+            <element signature="e#737#933#0" expanded="false" />
+            <element signature="e#935#1055#0" expanded="false" />
+            <element signature="e#1057#2424#0" expanded="false" />
+            <element signature="e#2426#3886#0" expanded="false" />
+            <element signature="e#11265#12074#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -685,41 +679,40 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/sender.c">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="920">
-          <caret line="56" column="5" lean-forward="true" selection-start-line="56" selection-start-column="5" selection-end-line="56" selection-end-column="5" />
+        <state relative-caret-position="880">
+          <caret line="52" column="41" lean-forward="false" selection-start-line="52" selection-start-column="34" selection-end-line="52" selection-end-column="41" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/receiver.c">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="794">
-          <caret line="64" column="18" lean-forward="true" selection-start-line="64" selection-start-column="18" selection-end-line="64" selection-end-column="18" />
+        <state relative-caret-position="674">
+          <caret line="61" column="21" lean-forward="true" selection-start-line="61" selection-start-column="21" selection-end-line="61" selection-end-column="21" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/gbn.h">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="639">
-          <caret line="43" column="23" lean-forward="false" selection-start-line="43" selection-start-column="17" selection-end-line="43" selection-end-column="23" />
+        <state relative-caret-position="480">
+          <caret line="42" column="4" lean-forward="false" selection-start-line="42" selection-start-column="4" selection-end-line="42" selection-end-column="11" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/gbn.c">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1594">
-          <caret line="159" column="46" lean-forward="false" selection-start-line="159" selection-start-column="46" selection-end-line="159" selection-end-column="55" />
+        <state relative-caret-position="874">
+          <caret line="167" column="52" lean-forward="true" selection-start-line="167" selection-start-column="52" selection-end-line="167" selection-end-column="52" />
           <folding>
-            <element signature="e#95#285#0" expanded="false" />
-            <element signature="e#367#644#0" expanded="false" />
-            <element signature="e#646#842#0" expanded="false" />
-            <element signature="e#844#964#0" expanded="false" />
-            <element signature="e#966#2030#0" expanded="false" />
-            <element signature="e#2032#3492#0" expanded="false" />
-            <element signature="e#5933#8387#0" expanded="false" />
-            <element signature="e#8389#9198#0" expanded="false" />
+            <element signature="e#332#410#0" expanded="false" />
+            <element signature="e#458#735#0" expanded="false" />
+            <element signature="e#737#933#0" expanded="false" />
+            <element signature="e#935#1055#0" expanded="false" />
+            <element signature="e#1057#2424#0" expanded="false" />
+            <element signature="e#2426#3886#0" expanded="false" />
+            <element signature="e#11265#12074#0" expanded="false" />
           </folding>
         </state>
       </provider>

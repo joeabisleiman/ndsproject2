@@ -203,7 +203,7 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
                          &socklen) == -1) {
                 if (errno == EINTR) {
                     printf("OMG THIS IS HERE\r\n");
-                    perror("Data Ack Recv failed");
+                    perror("Data Ack Recv failed\r\n");
                     continue;
                 }
             }
@@ -214,11 +214,10 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
             uint16_t calculated_checksum = checksum((uint16_t*) &DATAACKPACK,sizeof(DATAACKPACK) >> 1);
             if(received_checksum != calculated_checksum || DATAACKPACK.seqnum != next_seqnum) {
 
-                perror("Corrupted Data Ack Packet Packet");
+                perror("Corrupted Data Ack Packet Packet\r\n");
                 continue;
             }
 
-            printf("asdadasdasdas");
             alarm(0);
             errno = 0;
             ackReceived = 1;
@@ -226,13 +225,10 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
         /*TODO: END WHILE HERE*/
 
         /*Otherwise*/
-
-        printf("Current Seq is: %u\r\n", next_seqnum);
         next_seqnum ++;
         if(next_seqnum == 2) {
             next_seqnum =0;
         }
-        printf("Next Seq is: %u\r\n", next_seqnum);
     }
 
 	return(1);
@@ -243,61 +239,88 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
 	/*Retreiving size of socket address*/
 	socklen_t socklen = sizeof(struct sockaddr);
 
-
-
+    int duplicate = 0;
     gbnhdr DATAPACK;
     ssize_t recd;
 
-    recd = recvfrom(sockfd, &DATAPACK, len+4, 0, (struct sockaddr*) &global_sender, &socklen);
-	if((recd == -1)) {
-		perror("Data Recv failed");
-		return (-1);
-	}
+    /*TODO: Start While Loop*/
+    while(1) {
+        recd = recvfrom(sockfd, &DATAPACK, len + 4, 0, (struct sockaddr *) &global_sender, &socklen);
+        if ((recd == -1)) {
+            perror("Data Recv failed");
+            return (-1);
+        }
 
-    if(DATAPACK.type == 4) {
-        /*TODO: Checksum validation for FIN Packet*/
-        printf("FIN Received Successfully.\r\n");
-        s.current_state = FIN_RCVD;
-        return (0);
-    }
+        if (DATAPACK.type == 4) {
+            /*TODO: Checksum validation for FIN Packet*/
+            printf("FIN Received Successfully.\r\n");
+            s.current_state = FIN_RCVD;
+            return (0);
+        }
 
-    if (recd-4 < DATALEN){
-        memset(DATAPACK.data+recd-4, 0, (size_t) DATALEN-(recd-4));
-    }
+        if (recd - 4 < DATALEN) {
+            memset(DATAPACK.data + recd - 4, 0, (size_t) DATALEN - (recd - 4));
+        }
 
-    uint16_t received_checksum = DATAPACK.checksum;
-    DATAPACK.checksum = 0;
-    uint16_t calculated_checksum = checksum((uint16_t*) &DATAPACK,sizeof(DATAPACK) >> 1);
-    /*printf("Now printing packet second time: Type is %u, Seqnum is %u, Checksum is %u, and Data is %s.\r\n", DATAPACK.type, DATAPACK.seqnum, calculated_checksum, DATAPACK.data);*/
+        uint16_t received_checksum = DATAPACK.checksum;
+        DATAPACK.checksum = 0;
+        uint16_t calculated_checksum = checksum((uint16_t *) &DATAPACK, sizeof(DATAPACK) >> 1);
+        /*printf("Now printing packet second time: Type is %u, Seqnum is %u, Checksum is %u, and Data is %s.\r\n", DATAPACK.type, DATAPACK.seqnum, calculated_checksum, DATAPACK.data);*/
 
 /*    if(received_checksum != calculated_checksum) {
         perror("Corrupted Packet");
 
     }*/
 
-    if(DATAPACK.seqnum == next_seqnum && received_checksum == calculated_checksum) {
-        success_ack = next_seqnum;
-        /*printf("SIZE IS %zd, EXPECTED SEQ IS %u, CURRENT SEQ IS %d\r\n", recd-4, next_seqnum, DATAPACK.seqnum);*/
-        memcpy(buf, DATAPACK.data, recd - 4);
-    }
-    /*Constructing Data Ack Packet*/
+        if (DATAPACK.seqnum == next_seqnum && received_checksum == calculated_checksum) {
+            success_ack = next_seqnum;
+            /*printf("SIZE IS %zd, EXPECTED SEQ IS %u, CURRENT SEQ IS %d\r\n", recd-4, next_seqnum, DATAPACK.seqnum);*/
+            memcpy(buf, DATAPACK.data, recd - 4);
+            next_seqnum++;
+            if (next_seqnum == 2) {
+                next_seqnum = 0;
+            }
+            break;
+        } else {
+            printf("Success Ack expected: %u but Next Seq is: %u, whereas the original received is %u\r\n", success_ack,
+                   next_seqnum, DATAPACK.seqnum);
+            printf("Received CHeck: %u Calc CHeck: %u\r\n", received_checksum, calculated_checksum);
+            if(DATAPACK.seqnum == success_ack){
+                duplicate = 1;
+            }
+        }
+        /*Constructing Data Ack Packet*/
+        gbnhdr DATAACKPACK = {.type = DATAACK, .seqnum = success_ack, .checksum = 0};
+        /*Calculating New Checksum for DAP (Data Ack Packet) and updating the old value*/
+        uint16_t new_DAPchecksum = checksum((uint16_t *) &DATAACKPACK, sizeof(DATAACKPACK) >> 1);
+        DATAACKPACK.checksum = new_DAPchecksum;
+        /*Sending Data Ack Packet*/
+        if (maybe_sendto(sockfd, &DATAACKPACK, sizeof(DATAACKPACK), 0, (struct sockaddr*) &global_sender, socklen) == -1) {
+            perror("Data Ack Sending failed");
+            return (-1);
+        }
 
+        if(duplicate) {
+            continue;
+        }
+
+    }
+    /*TODO: END While Loop*/
+
+    /*TODO: Extend While Loop*/
     gbnhdr DATAACKPACK = {.type = DATAACK, .seqnum = success_ack, .checksum = 0};
     /*Calculating New Checksum for DAP (Data Ack Packet) and updating the old value*/
     uint16_t new_DAPchecksum = checksum((uint16_t *) &DATAACKPACK, sizeof(DATAACKPACK) >> 1);
     DATAACKPACK.checksum = new_DAPchecksum;
     /*Sending Data Ack Packet*/
-    if (sendto(sockfd, &DATAACKPACK, sizeof(DATAACKPACK), 0, (struct sockaddr*) &global_sender, socklen) == -1) {
+    if (maybe_sendto(sockfd, &DATAACKPACK, sizeof(DATAACKPACK), 0, (struct sockaddr*) &global_sender, socklen) == -1) {
         perror("Data Ack Sending failed");
         return (-1);
     }
 
-    next_seqnum ++;
-    if(next_seqnum == 2) {
-        next_seqnum = 0;
-    }
-    printf("receiver buf1 size is: %zd\r\n", recd-4);
-	return(recd-4);
+    return(recd-4);
+
+    /*TODO: End While Loop*/
 }
 
 int gbn_close(int sockfd){

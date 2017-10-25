@@ -30,7 +30,6 @@ size_t min(size_t a, size_t b) {
 
 void timeout(int sig) {
     signal(SIGALRM, timeout);
-    /*printf("BLABLABLABLABLABLA\r\n");*/
 }
 
 int gbn_socket(int domain, int type, int protocol){
@@ -176,9 +175,9 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
     /* TODO: Your code here. */
     /*Retreiving size of socket address*/
     socklen_t socklen = sizeof(struct sockaddr);
-
+    signal(SIGALRM, timeout);
     /*int windowSize = 1;*/
-    uint8_t nextSeqNum = 0;
+    /*uint8_t nextSeqNum = 0;*/
     int base = 0;
     int currentPacket = 0;
     int maxNumberOfTries = 5;
@@ -221,16 +220,16 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
 
             /*send*/
             ssize_t sent;
-            if ((sent = sendto(sockfd, &DATAPACK, actualDataLength + 4, 0, (struct sockaddr *) &global_receiver,
+            if ((sent = maybe_sendto(sockfd, &DATAPACK, actualDataLength + 4, 0, (struct sockaddr *) &global_receiver,
                                (socklen_t) socklen)) == -1) {
                 perror("CODE RED");
             }
 
             currentPacket++;
-            lastSentPacket++;
             if(lastSentPacket == base) {
                 alarm(TIMEOUT);
             }
+            lastSentPacket++;
         }
 
         /*receive*/

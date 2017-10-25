@@ -191,22 +191,21 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
     int number_of_packets;
     next_seqnum =0;
 
+
     if((len/DATALEN)%DATALEN == 0) {
         number_of_packets = (int) len/DATALEN;
     } else {
         number_of_packets = (int) len / DATALEN + 1;
     }
-
+    if(len<DATALEN) {
+        number_of_packets =1;
+    }
     totalNumOfPackets = number_of_packets;
     struct gbnhdr allPackets[number_of_packets];
 
     constructPackets(buf, len, allPackets, number_of_packets);
     int initial = 1;
 
-    printf("LAST SEQ %u\r\n",allPackets[0].seqnum);
-    printf("SIZE OF PACKS%zd\r\n",sizeof(allPackets)/ sizeof(allPackets[0]));
-    printf("METRICS: LS IS %u, BASE %u, WIND %u \r\n", lastSentPacket, base, windowSize);
-    printf("INITIAL FLAG IS %u\r\n", initial);
     while(number_of_packets>0) {
 
         while(lastSentPacket-base+1 < windowSize || initial){
@@ -216,10 +215,7 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
             /*Need to compute Actual Length*/
             size_t actualDataLength = DATALEN;
             if (number_of_packets == 1 && len%DATALEN != 0){ /*If it's the last packet padd with 0s*/
-
-                printf("ACTUAL DL WAS%zd\n",actualDataLength);
                 actualDataLength = len%DATALEN;
-                printf("ACTUAL DL%zd\n",actualDataLength);
                 memset(DATAPACK.data+actualDataLength, 0, DATALEN-actualDataLength);
             }
 
@@ -243,45 +239,52 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
                      &socklen) == -1) {
             if (errno == EINTR) {
                 maxNumberOfTries--;
+                /*Reset Connection if 5 Timouts occur*/
                 if(maxNumberOfTries == 0) {
                     return (-1);
                 }
+                /*Reset last sent packet to base and set window size to 1*/
                 lastSentPacket = base;
                 windowSize = 1;
+                initial = 1;
                 continue;
             }
         }
-/*        *//*Checksum Routine if fails continue*//*
+        /*Checksum Routine if fails continue*/
         uint16_t received_checksum = DATAACKPACK.checksum;
         DATAACKPACK.checksum = 0;
-        uint16_t calculated_checksum = checksum((uint16_t*) &DATAACKPACK,sizeof(DATAACKPACK) >> 1);*/
+        uint16_t calculated_checksum = checksum((uint16_t*) &DATAACKPACK,sizeof(DATAACKPACK) >> 1);
+        if(calculated_checksum != received_checksum) {
+            lastSentPacket = base;
+            windowSize = 1;
+            initial = 1;
+            continue;
+        }
 
         number_of_packets --;
         maxNumberOfTries = 0;
         windowSize = 2;
         base++;
         retr++;
-        if(DATAACKPACK.seqnum == allPackets[base+windowSize-1].seqnum ) {
+        if(DATAACKPACK.seqnum == allPackets[base+windowSize-1].seqnum ) { /*Means a valid ack has arrived but there is another previous one missing, so take to be a cumulative ack*/
             base++;
         }
         if(base == totalNumOfPackets){ /*Sending Done*/
             break;
         }
-        if(base == lastSentPacket) {
+        if(base == lastSentPacket) { /*If there are no more packets waiting to be ack'ed, reset the timer*/
             alarm(0);
-        } else {
+        } else { /*If we receive an ack and there are still packets that need ack'ing, restart the timer*/
             alarm(TIMEOUT);
         }
 
     }
 
-    printf("NUMBER OF PACKS SENT FINAL %u\n",bufferOffset);
-    printf("NUMBER OF PACKS REC FINAL %u\n",retr);
     return(1);
 }
 
 ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
-	/* TODO: Your code here. */
+
 	/*Retreiving size of socket address*/
 	socklen_t socklen = sizeof(struct sockaddr);
     if(bigFileCounter == 1024){
@@ -304,7 +307,6 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
         }
 
         if (DATAPACK.type == 4) {
-            /*TODO: Checksum validation for FIN Packet*/
             printf("FIN Received Successfully.\r\n");
             s.current_state = FIN_RCVD;
             return (0);
@@ -317,14 +319,12 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
         uint16_t received_checksum = DATAPACK.checksum;
         DATAPACK.checksum = 0;
         uint16_t calculated_checksum = checksum((uint16_t *) &DATAPACK, sizeof(DATAPACK) >> 1);
-        /*printf("Now printing packet second time: Type is %u, Seqnum is %u, Checksum is %u, and Data is %s.\r\n", DATAPACK.type, DATAPACK.seqnum, calculated_checksum, DATAPACK.data);*/
 
-/*    if(received_checksum != calculated_checksum) {
-        perror("Corrupted Packet");
+        if(received_checksum != calculated_checksum) {
+            perror("Corrupted Packet");
 
-    }*/
+        }
 
-        /*printf("SIZE IS %zd, EXPECTED SEQ IS %u, CURRENT SEQ IS %d\r\n", recd-4, next_seqnum, DATAPACK.seqnum);*/
         if (DATAPACK.seqnum == next_seqnum && received_checksum == calculated_checksum) {
             success_ack = next_seqnum;
             /*printf("SIZE IS %zd, EXPECTED SEQ IS %u, CURRENT SEQ IS %d\r\n", recd-4, next_seqnum, DATAPACK.seqnum);*/
@@ -334,9 +334,6 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
             received++;
             break;
         } else {
-            /*printf("Success Ack expected: %u but Next Seq is: %u, whereas the original received is %u\r\n", success_ack,*/
-            /*       next_seqnum, DATAPACK.seqnum);*/
-            /*printf("Received CHeck: %u Calc CHeck: %u\r\n", received_checksum, calculated_checksum);*/
             if(DATAPACK.seqnum == success_ack){
                 duplicate = 1;
             }
@@ -358,7 +355,6 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
         }
 
     }
-    /*TODO: END While Loop*/
 
     gbnhdr DATAACKPACK = {.type = DATAACK, .seqnum = success_ack, .checksum = 0};
     /*Calculating New Checksum for DAP (Data Ack Packet) and updating the old value*/
@@ -371,7 +367,6 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
     }
     return(recd-4);
 
-    /*TODO: End While Loop*/
 }
 
 int gbn_close(int sockfd){

@@ -4,8 +4,11 @@ struct sockaddr global_receiver;
 struct sockaddr global_sender;
 uint8_t next_seqnum = 0;
 size_t data_length;
-uint8_t success_ack;
+uint8_t success_ack = 500000;
+int windowSize = 1;
+int bigFileCounter = 0;
 
+int received = 0;
 state_t s;
 
 uint16_t checksum(uint16_t *buf, int nwords)
@@ -27,7 +30,7 @@ size_t min(size_t a, size_t b) {
 
 void timeout(int sig) {
     signal(SIGALRM, timeout);
-    printf("BLABLABLABLABLABLA\r\n");
+    /*printf("BLABLABLABLABLABLA\r\n");*/
 }
 
 int gbn_socket(int domain, int type, int protocol){
@@ -148,100 +151,149 @@ int gbn_accept(int sockfd, struct sockaddr *client, socklen_t *socklen){
     return(sockfd);
 }
 
-ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
+void constructPackets(void *buffer, size_t length_of_buffer, gbnhdr output[], int number_of_packets) {
 
-	/* TODO: Your code here. */
-	/*Retreiving size of socket address*/
-	socklen_t socklen = sizeof(struct sockaddr);
-
-	/* Hint: Check the data length field 'len'.
-	 *       If it is > DATALEN, you will have to split the data
-	 *       up into multiple packets - you don't have to worry
-	 *       about getting more than N * DATALEN.
-	 */
-
-    size_t tempLen = len;
-    size_t dataLen;
-    int bufferIndex = 0;
-    data_length = len;
-    next_seqnum = 0;
-
-    printf("INSIDE SENDER LEARNING: %d\r\n", errno);
-    while(tempLen>0) {
-        dataLen = min(tempLen, DATALEN);
-        tempLen -= dataLen;
-
-        gbnhdr DATAPACK = {.type = DATA, .seqnum = next_seqnum, .checksum = 0};
-
-        memcpy(DATAPACK.data, buf + bufferIndex, dataLen);
-        if (dataLen < DATALEN){
-            memset(DATAPACK.data+dataLen, 0, DATALEN-dataLen);
-        }
-        bufferIndex += dataLen;
-
-        /*Calculating New Checksum for DP (Data Packet) and updating the old value*/
-        uint16_t new_DPchecksum = checksum((uint16_t *) &DATAPACK, sizeof(DATAPACK) >> 1);
-        DATAPACK.checksum = new_DPchecksum;
-
-        ssize_t sent;
-
-        int ackReceived = 0;
-        struct gbnhdr DATAACKPACK;
-
-        /*TODO: Start WHILE while(!ackReceived)*/
-        while(!ackReceived) {
-            if ((sent = maybe_sendto(sockfd, &DATAPACK, dataLen + 4, 0, (struct sockaddr *) &global_receiver,
-                               (socklen_t) socklen)) == -1) {
-                perror("Data Sending failed");
-                return (-1);
-            }
-
-            alarm(TIMEOUT);
-
-            /*TODO: Receive Ack for Data Pack Sent*/
-            if (recvfrom(sockfd, &DATAACKPACK, sizeof(DATAACKPACK), 0, (struct sockaddr *) &global_receiver,
-                         &socklen) == -1) {
-                if (errno == EINTR) {
-                    printf("OMG THIS IS HERE\r\n");
-                    perror("Data Ack Recv failed\r\n");
-                    continue;
-                }
-            }
-
-            /*If checksum is correct*/
-            uint16_t received_checksum = DATAACKPACK.checksum;
-            DATAACKPACK.checksum = 0;
-            uint16_t calculated_checksum = checksum((uint16_t*) &DATAACKPACK,sizeof(DATAACKPACK) >> 1);
-            if(received_checksum != calculated_checksum || DATAACKPACK.seqnum != next_seqnum) {
-
-                perror("Corrupted Data Ack Packet Packet\r\n");
-                continue;
-            }
-
-            alarm(0);
-            errno = 0;
-            ackReceived = 1;
-        }
-        /*TODO: END WHILE HERE*/
-
-        /*Otherwise*/
-        next_seqnum ++;
-        if(next_seqnum == 2) {
-            next_seqnum =0;
-        }
+    uint8_t seqNum = 0;
+    size_t tempLength = length_of_buffer;
+    size_t actualDataLength;
+    int i;
+    for(i = 0; i < number_of_packets; i++) {
+        actualDataLength = min(DATALEN, tempLength);
+        tempLength -= actualDataLength;
+        gbnhdr packet = {.type = DATA, .seqnum = seqNum, .checksum = 0};
+        memcpy(packet.data, buffer + DATALEN * (i), actualDataLength);
+        /*Calculate Checksum*/
+        uint16_t new_DPchecksum = checksum((uint16_t *) &packet, sizeof(packet) >> 1);
+        packet.checksum = new_DPchecksum;
+        output[i] = packet;
+        seqNum =  (seqNum+1)%3;
     }
 
-	return(1);
+}
+
+ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
+
+    /* TODO: Your code here. */
+    /*Retreiving size of socket address*/
+    socklen_t socklen = sizeof(struct sockaddr);
+
+    /*int windowSize = 1;*/
+    uint8_t nextSeqNum = 0;
+    int base = 0;
+    int currentPacket = 0;
+    int maxNumberOfTries = 5;
+    int lastSentPacket = 0;
+
+    int bufferOffset = 0;
+    int retr=0;
+    int totalNumOfPackets;
+
+    int number_of_packets;
+    next_seqnum =0;
+
+    if((len/DATALEN)%DATALEN == 0) {
+        number_of_packets = (int) len/DATALEN;
+    } else {
+        number_of_packets = (int) len / DATALEN + 1;
+    }
+
+    totalNumOfPackets = number_of_packets;
+    struct gbnhdr allPackets[number_of_packets];
+
+    constructPackets(buf, len, allPackets, number_of_packets);
+    int initial = 1;
+
+    printf("LAST SEQ %u\r\n",allPackets[0].seqnum);
+    printf("SIZE OF PACKS%zd\r\n",sizeof(allPackets)/ sizeof(allPackets[0]));
+    printf("METRICS: LS IS %u, BASE %u, WIND %u \r\n", lastSentPacket, base, windowSize);
+    printf("INITIAL FLAG IS %u\r\n", initial);
+    while(number_of_packets>0) {
+
+        while(lastSentPacket-base+1 < windowSize || initial){
+            bufferOffset++;
+            initial = 0;
+            gbnhdr DATAPACK = allPackets[lastSentPacket];
+            /*Need to compute Actual Length*/
+            size_t actualDataLength = DATALEN;
+            if (number_of_packets == 1 && len%DATALEN != 0){ /*If it's the last packet padd with 0s*/
+
+                printf("ACTUAL DL WAS%zd\n",actualDataLength);
+                actualDataLength = len%DATALEN;
+                printf("ACTUAL DL%zd\n",actualDataLength);
+                memset(DATAPACK.data+actualDataLength, 0, DATALEN-actualDataLength);
+            }
+
+            /*send*/
+            ssize_t sent;
+            if ((sent = sendto(sockfd, &DATAPACK, actualDataLength + 4, 0, (struct sockaddr *) &global_receiver,
+                               (socklen_t) socklen)) == -1) {
+                perror("CODE RED");
+            }
+
+            currentPacket++;
+            lastSentPacket++;
+            if(lastSentPacket == base) {
+                alarm(TIMEOUT);
+            }
+        }
+
+        /*receive*/
+        gbnhdr DATAACKPACK;
+        if (recvfrom(sockfd, &DATAACKPACK, sizeof(DATAACKPACK), 0, (struct sockaddr *) &global_receiver,
+                     &socklen) == -1) {
+            if (errno == EINTR) {
+                maxNumberOfTries--;
+                if(maxNumberOfTries == 0) {
+                    return (-1);
+                }
+                lastSentPacket = base;
+                windowSize = 1;
+                continue;
+            }
+        }
+/*        *//*Checksum Routine if fails continue*//*
+        uint16_t received_checksum = DATAACKPACK.checksum;
+        DATAACKPACK.checksum = 0;
+        uint16_t calculated_checksum = checksum((uint16_t*) &DATAACKPACK,sizeof(DATAACKPACK) >> 1);*/
+
+        number_of_packets --;
+        maxNumberOfTries = 0;
+        windowSize = 2;
+        base++;
+        retr++;
+        if(DATAACKPACK.seqnum == allPackets[base+windowSize-1].seqnum ) {
+            base++;
+        }
+        if(base == totalNumOfPackets){ /*Sending Done*/
+            break;
+        }
+        if(base == lastSentPacket) {
+            alarm(0);
+        } else {
+            alarm(TIMEOUT);
+        }
+
+    }
+
+    printf("NUMBER OF PACKS SENT FINAL %u\n",bufferOffset);
+    printf("NUMBER OF PACKS REC FINAL %u\n",retr);
+    return(1);
 }
 
 ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
 	/* TODO: Your code here. */
 	/*Retreiving size of socket address*/
 	socklen_t socklen = sizeof(struct sockaddr);
+    if(bigFileCounter == 1024){
+        bigFileCounter = 0;
+        next_seqnum = 0;
+        success_ack = 200;
+    }
+    bigFileCounter++;
 
     int duplicate = 0;
     gbnhdr DATAPACK;
-    ssize_t recd;
+    ssize_t recd = 0;
 
     /*TODO: Start While Loop*/
     while(1) {
@@ -272,19 +324,19 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
 
     }*/
 
+        /*printf("SIZE IS %zd, EXPECTED SEQ IS %u, CURRENT SEQ IS %d\r\n", recd-4, next_seqnum, DATAPACK.seqnum);*/
         if (DATAPACK.seqnum == next_seqnum && received_checksum == calculated_checksum) {
             success_ack = next_seqnum;
             /*printf("SIZE IS %zd, EXPECTED SEQ IS %u, CURRENT SEQ IS %d\r\n", recd-4, next_seqnum, DATAPACK.seqnum);*/
             memcpy(buf, DATAPACK.data, recd - 4);
-            next_seqnum++;
-            if (next_seqnum == 2) {
-                next_seqnum = 0;
-            }
+
+            next_seqnum = (next_seqnum+1)%3;
+            received++;
             break;
         } else {
-            printf("Success Ack expected: %u but Next Seq is: %u, whereas the original received is %u\r\n", success_ack,
-                   next_seqnum, DATAPACK.seqnum);
-            printf("Received CHeck: %u Calc CHeck: %u\r\n", received_checksum, calculated_checksum);
+            /*printf("Success Ack expected: %u but Next Seq is: %u, whereas the original received is %u\r\n", success_ack,*/
+            /*       next_seqnum, DATAPACK.seqnum);*/
+            /*printf("Received CHeck: %u Calc CHeck: %u\r\n", received_checksum, calculated_checksum);*/
             if(DATAPACK.seqnum == success_ack){
                 duplicate = 1;
             }
@@ -295,29 +347,28 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
         uint16_t new_DAPchecksum = checksum((uint16_t *) &DATAACKPACK, sizeof(DATAACKPACK) >> 1);
         DATAACKPACK.checksum = new_DAPchecksum;
         /*Sending Data Ack Packet*/
-        if (maybe_sendto(sockfd, &DATAACKPACK, sizeof(DATAACKPACK), 0, (struct sockaddr*) &global_sender, socklen) == -1) {
+        if (sendto(sockfd, &DATAACKPACK, sizeof(DATAACKPACK), 0, (struct sockaddr*) &global_sender, socklen) == -1) {
             perror("Data Ack Sending failed");
             return (-1);
         }
 
         if(duplicate) {
+            printf("ARE WE EVER HERE?");
             continue;
         }
 
     }
     /*TODO: END While Loop*/
 
-    /*TODO: Extend While Loop*/
     gbnhdr DATAACKPACK = {.type = DATAACK, .seqnum = success_ack, .checksum = 0};
     /*Calculating New Checksum for DAP (Data Ack Packet) and updating the old value*/
     uint16_t new_DAPchecksum = checksum((uint16_t *) &DATAACKPACK, sizeof(DATAACKPACK) >> 1);
     DATAACKPACK.checksum = new_DAPchecksum;
     /*Sending Data Ack Packet*/
-    if (maybe_sendto(sockfd, &DATAACKPACK, sizeof(DATAACKPACK), 0, (struct sockaddr*) &global_sender, socklen) == -1) {
+    if (sendto(sockfd, &DATAACKPACK, sizeof(DATAACKPACK), 0, (struct sockaddr*) &global_sender, socklen) == -1) {
         perror("Data Ack Sending failed");
         return (-1);
     }
-
     return(recd-4);
 
     /*TODO: End While Loop*/

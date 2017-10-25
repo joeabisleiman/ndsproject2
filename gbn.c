@@ -236,7 +236,7 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
         gbnhdr DATAACKPACK;
         if (recvfrom(sockfd, &DATAACKPACK, sizeof(DATAACKPACK), 0, (struct sockaddr *) &global_receiver,
                      &socklen) == -1) {
-            if (errno == EINTR) {
+            if (errno == EINTR) { /*Detecting Timeout*/
                 maxNumberOfTries--;
                 /*Reset Connection if 5 Timouts occur*/
                 if(maxNumberOfTries == 0) {
@@ -254,6 +254,13 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
         DATAACKPACK.checksum = 0;
         uint16_t calculated_checksum = checksum((uint16_t*) &DATAACKPACK,sizeof(DATAACKPACK) >> 1);
         if(calculated_checksum != received_checksum) {
+            lastSentPacket = base;
+            windowSize = 1;
+            initial = 1;
+            continue;
+        }
+
+        if(DATAACKPACK.seqnum == allPackets[base-1].seqnum) {
             lastSentPacket = base;
             windowSize = 1;
             initial = 1;
@@ -319,10 +326,10 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
         DATAPACK.checksum = 0;
         uint16_t calculated_checksum = checksum((uint16_t *) &DATAPACK, sizeof(DATAPACK) >> 1);
 
-        if(received_checksum != calculated_checksum) {
+/*        if(received_checksum != calculated_checksum) {
             perror("Corrupted Packet");
 
-        }
+        }*/
 
         if (DATAPACK.seqnum == next_seqnum && received_checksum == calculated_checksum) {
             success_ack = next_seqnum;
@@ -343,7 +350,7 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
         uint16_t new_DAPchecksum = checksum((uint16_t *) &DATAACKPACK, sizeof(DATAACKPACK) >> 1);
         DATAACKPACK.checksum = new_DAPchecksum;
         /*Sending Data Ack Packet*/
-        if (sendto(sockfd, &DATAACKPACK, sizeof(DATAACKPACK), 0, (struct sockaddr*) &global_sender, socklen) == -1) {
+        if (maybe_sendto(sockfd, &DATAACKPACK, sizeof(DATAACKPACK), 0, (struct sockaddr*) &global_sender, socklen) == -1) {
             perror("Data Ack Sending failed");
             return (-1);
         }
@@ -360,7 +367,7 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
     uint16_t new_DAPchecksum = checksum((uint16_t *) &DATAACKPACK, sizeof(DATAACKPACK) >> 1);
     DATAACKPACK.checksum = new_DAPchecksum;
     /*Sending Data Ack Packet*/
-    if (sendto(sockfd, &DATAACKPACK, sizeof(DATAACKPACK), 0, (struct sockaddr*) &global_sender, socklen) == -1) {
+    if (maybe_sendto(sockfd, &DATAACKPACK, sizeof(DATAACKPACK), 0, (struct sockaddr*) &global_sender, socklen) == -1) {
         perror("Data Ack Sending failed");
         return (-1);
     }
